@@ -10,9 +10,11 @@ from pygame import gfxdraw
 class Client:
     WIDTH = 1000
     HEIGHT = 500
-    BACKGROUND = pygame.color.Color(0, 0, 0)
+    BACKGROUND = pygame.color.Color(255, 255, 255)
+    SCALE = 100
+    MOVE_STEP = 10
 
-    def __init__(self, nick, server_host=Server.HOST, server_port=Server.PORT):
+    def __init__(self, nick: str, server_host=Server.HOST, server_port=Server.PORT):
         self.nick = nick
         self.players = dict()
 
@@ -39,7 +41,7 @@ class Client:
         self.send_disconnect()
         self.sock.close()
 
-    def send_command(self, command):
+    def send_command(self, command: bytes):
         """Send `command` binary string to the server. See docs/protocol.md"""
         with self.sock_mutex:
             self.sock.sendall(command)
@@ -64,7 +66,7 @@ class Client:
         # Parse the received JSON and save it into self.players
         self.players = json.loads(response.decode("UTF-8"))
 
-    def send_move(self, x, y):
+    def send_move(self, x: int, y: int):
         """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
         command = json.dumps({Server.MOVE: [self.nick, x, y]}).encode("UTF-8")
         self.send_command(command)
@@ -96,13 +98,13 @@ class Client:
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_LEFT]:
-                x -= 10
+                x -= self.MOVE_STEP
             if keys[pygame.K_UP]:
-                y -= 10
+                y -= self.MOVE_STEP
             if keys[pygame.K_RIGHT]:
-                x += 10
+                x += self.MOVE_STEP
             if keys[pygame.K_DOWN]:
-                y += 10
+                y += self.MOVE_STEP
 
             get_thread.join()
 
@@ -112,8 +114,8 @@ class Client:
             window.fill(self.BACKGROUND)
             for v in self.players.values():
                 # https://stackoverflow.com/a/62480486 (Anti aliasing)
-                gfxdraw.aacircle(window, v[0], v[1], v[2]*100, (255, 0, 0))
-                gfxdraw.filled_circle(window, v[0], v[1], v[2]*100, (255, 0, 0))
+                gfxdraw.aacircle(window, v[0], v[1], v[2]*self.SCALE, (255, 0, 0))
+                gfxdraw.filled_circle(window, v[0], v[1], v[2]*self.SCALE, (255, 0, 0))
 
                 # pygame.draw.circle(window, (255, 0, 0), (v[0], v[1]), v[2]*100)
 
