@@ -83,6 +83,9 @@ class Client:
         self.receive_get()
         x, y = self.players[self.nick][:2]
 
+        offset_x = int(x - self.WIDTH/2)
+        offset_y = int(y - self.HEIGHT/2)
+
         run = True
         while run:
             pygame.time.delay(100)
@@ -99,12 +102,16 @@ class Client:
 
             if keys[pygame.K_LEFT]:
                 x -= self.MOVE_STEP
+                offset_x -= self.MOVE_STEP
             if keys[pygame.K_UP]:
                 y -= self.MOVE_STEP
+                offset_y -= self.MOVE_STEP
             if keys[pygame.K_RIGHT]:
                 x += self.MOVE_STEP
+                offset_x += self.MOVE_STEP
             if keys[pygame.K_DOWN]:
                 y += self.MOVE_STEP
+                offset_y += self.MOVE_STEP
 
             get_thread.join()
 
@@ -113,9 +120,12 @@ class Client:
 
             window.fill(self.BACKGROUND)
             for v in self.players.values():
+                screen_x = v[0] - offset_x
+                screen_y = v[1] - offset_y
+
                 # https://stackoverflow.com/a/62480486 (Anti aliasing)
-                gfxdraw.aacircle(window, v[0], v[1], v[2]*self.SCALE, (255, 0, 0))
-                gfxdraw.filled_circle(window, v[0], v[1], v[2]*self.SCALE, (255, 0, 0))
+                gfxdraw.aacircle(window, screen_x, screen_y, v[2]*self.SCALE, (255, 0, 0))
+                gfxdraw.filled_circle(window, screen_x, screen_y, v[2]*self.SCALE, (255, 0, 0))
 
                 # pygame.draw.circle(window, (255, 0, 0), (v[0], v[1]), v[2]*100)
 
