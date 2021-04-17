@@ -5,19 +5,41 @@ import json
 import threading
 import pygame
 from pygame import gfxdraw
+import random
+
+
+# https://stackoverflow.com/a/62480486
+def draw_circle(window: pygame.Surface, x: int, y: int, radius: int, color: pygame.Color):
+    """Draws a circle at (`x`, `y`) with radius `radius` and color `color` on `window` using antialiasing."""
+    gfxdraw.aacircle(window, x, y, radius, color)
+    gfxdraw.filled_circle(window, x, y, radius, color)
+
+
+def world_to_screen(x: int, y: int, offset_x: int, offset_y: int):
+    return x - offset_x, y - offset_y
+
+
+def random_color() -> pygame.Color:
+    """Returns a random color"""
+    return pygame.Color(random.randrange(0, 256), random.randrange(0, 256), random.randrange(0, 256))
 
 
 class Client:
     WIDTH = 1000
     HEIGHT = 500
     BACKGROUND = pygame.color.Color(255, 255, 255)
-    SCALE = 100
-    MOVE_STEP = 10
+    SCALE = 1
+    MOVE_STEP = int(Server.DEFAULT_PLAYER_SIZE/10)
+
+    FOOD_SIZE = 5
 
     def __init__(self, nick: str, server_host=Server.HOST, server_port=Server.PORT):
         self.nick = nick
         self.players = dict()
         self.food = []
+
+        self.player_colors = dict()
+        self.food_colors = dict()
 
         self.HOST = server_host
         self.PORT = server_port
@@ -68,6 +90,16 @@ class Client:
         parsed_response = json.loads(response.decode("UTF-8"))
         self.players = parsed_response["players"]
         self.food = parsed_response["food"]
+        self.assign_colors()
+
+    def assign_colors(self) -> None:
+        for player in self.players:
+            if player not in self.player_colors:
+                self.player_colors[player] = random_color()
+        for food in self.food:
+            temp = (food[0], food[1])
+            if temp not in self.food_colors:
+                self.food_colors[temp] = random_color()
 
     def send_move(self, x: int, y: int):
         """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
@@ -122,15 +154,14 @@ class Client:
             post_thread.start()
 
             window.fill(self.BACKGROUND)
-            for v in self.players.values():
-                screen_x = v[0] - offset_x
-                screen_y = v[1] - offset_y
+            for nick, v in self.players.items():
+                screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
+                draw_circle(window, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
 
-                # https://stackoverflow.com/a/62480486 (Anti aliasing)
-                gfxdraw.aacircle(window, screen_x, screen_y, v[2]*self.SCALE, (255, 0, 0))
-                gfxdraw.filled_circle(window, screen_x, screen_y, v[2]*self.SCALE, (255, 0, 0))
-
-                # pygame.draw.circle(window, (255, 0, 0), (v[0], v[1]), v[2]*100)
+            for v in self.food:
+                screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
+                temp = (v[0], v[1])
+                draw_circle(window, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
 
             pygame.display.update()
 

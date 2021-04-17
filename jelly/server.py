@@ -19,7 +19,13 @@ class Server:
     PORT = 1513
 
     # When a player is spawned, its size is equal to this value.
-    DEFAULT_PLAYER_SIZE = 1
+    DEFAULT_PLAYER_SIZE = 50
+
+    # Number of the food on the map.
+    FOOD_NUM = 30
+
+    # Increment the size of a player who ate a food unit by `FOOD_INCREMENT`
+    FOOD_INCREMENT = 2
 
     MAP_WIDTH = 1000
     MAP_HEIGHT = 500
@@ -35,6 +41,12 @@ class Server:
         self.players_mutex = threading.Lock()
 
         self.food = []
+        self.food_mutex = threading.Lock()
+
+        # Spawn `FOOD_NUM` units of food.
+        for _ in range(self.FOOD_NUM):
+            self.spawn_food()
+
         self.listen()
 
     @staticmethod
@@ -62,8 +74,22 @@ class Server:
             self.players[nick] = [x, y, Server.DEFAULT_PLAYER_SIZE + random.choice([20, 0])]
             self.players_mutex.release()
 
+    def spawn_food(self) -> None:
+        """Spawn one unit of food at a random point on the map."""
+        x_random = random.randrange(0, self.MAP_WIDTH)
+        y_random = random.randrange(0, self.MAP_HEIGHT)
+        self.food_mutex.acquire()
+        self.food.append((x_random, y_random))
+        self.food_mutex.release()
+
+    def eat_food(self, x_food: int, y_food: int) -> None:
+        """Clear the food unit at (`x_food`, `y_food`)."""
+        self.food_mutex.acquire()
+        self.food.remove((x_food, y_food))
+        self.food_mutex.release()
+
     @staticmethod
-    def gen_spawn_coords(vicinity: int) -> (int, int):
+    def gen_player_spawn_coords(vicinity: int) -> (int, int):
         """Returns a point P(x, y) such that there are no player points in the circle
             with the centre at P and radius `vicinity`"""
         # TODO: implement
@@ -92,6 +118,12 @@ class Server:
         # They are too far from each other OR they're of the same size.
         return None
 
+    def is_food_eaten(self, player: str, food: (int, int)) -> bool:
+        food_x, food_y = food
+        player_x, player_y, player_r = self.players[player]
+        d = sqrt((player_x - food_x)**2 + (player_y - food_y)**2)
+        return player_r > 1 and d <= player_r
+
     def process_eaten(self):
         """Processes cases when (a) player(s) was/were eaten.
             Some detail: increases the size of the eater by the size of the eaten."""
@@ -110,6 +142,12 @@ class Server:
 
                         # TODO: notify the loser that he was eaten.
                         self.grow(loser, -loser_size)
+            for f in self.food:
+                if self.is_food_eaten(i, f):
+                    self.grow(i, self.FOOD_INCREMENT)
+                    self.eat_food(*f)
+                    # Spawn a food unit after one was eaten.
+                    self.spawn_food()
 
     def move_player(self, nick: str, x: int, y: int) -> None:
         """Changes the position of the player with nick 'nick' to (`x`, `y`)."""
@@ -155,7 +193,7 @@ class Server:
                         if command == Server.SPAWN:
                             # Check user data.
                             self.assert_nick(args)
-                            self.spawn_player(args, *self.gen_spawn_coords(Server.DEFAULT_PLAYER_SIZE))
+                            self.spawn_player(args, *self.gen_player_spawn_coords(Server.DEFAULT_PLAYER_SIZE))
                         # MOVE
                         elif command == Server.MOVE:
                             if not args[0] in self.players:
