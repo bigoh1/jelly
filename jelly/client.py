@@ -17,6 +17,7 @@ class Client:
     def __init__(self, nick: str, server_host=Server.HOST, server_port=Server.PORT):
         self.nick = nick
         self.players = dict()
+        self.food = []
 
         self.HOST = server_host
         self.PORT = server_port
@@ -64,7 +65,9 @@ class Client:
         response = self.receive()
 
         # Parse the received JSON and save it into self.players
-        self.players = json.loads(response.decode("UTF-8"))
+        parsed_response = json.loads(response.decode("UTF-8"))
+        self.players = parsed_response["players"]
+        self.food = parsed_response["food"]
 
     def send_move(self, x: int, y: int):
         """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
