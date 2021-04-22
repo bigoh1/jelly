@@ -115,6 +115,9 @@ class Client:
         window = pygame.display.set_mode((Client.WIDTH, Client.HEIGHT))
         pygame.display.set_caption("Jelly")
 
+        # TODO: generate it in a separate thread.
+        font = pygame.font.SysFont('helvetica.ttf', 30)
+
         self.receive_get()
         x, y = self.players[self.nick][:2]
 
@@ -157,6 +160,10 @@ class Client:
             for nick, v in self.players.items():
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
                 draw_circle(window, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
+
+                image = font.render(nick, True, (0, 0, 0))
+                rect = image.get_rect(center=(screen_x, screen_y))
+                window.blit(image, rect)
 
             for v in self.food:
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
