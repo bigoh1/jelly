@@ -71,7 +71,7 @@ class Server:
         # TODO: check nick
         if nick not in self.players:
             self.players_mutex.acquire()
-            self.players[nick] = [x, y, Server.DEFAULT_PLAYER_SIZE + random.choice([20, 0])]
+            self.players[nick] = [x, y, Server.DEFAULT_PLAYER_SIZE]
             self.players_mutex.release()
 
     def spawn_food(self) -> None:
@@ -161,6 +161,10 @@ class Server:
         """Increases/decreases the size of player `nick` by `increment`."""
         self.players_mutex.acquire()
         self.players[nick][2] += increment
+
+        # Sort players.
+        self.players = dict(sorted(self.players.items(), key=lambda item: item[1][2], reverse=True))
+
         self.players_mutex.release()
 
     def disconnect_player(self, nick: str):

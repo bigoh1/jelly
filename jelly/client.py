@@ -27,6 +27,7 @@ def random_color() -> pygame.Color:
 class Client:
     DEFAULT_WIDTH = 500
     DEFAULT_HEIGHT = 500
+    DEFAULT_LEADER_BOARD_WIDTH = DEFAULT_WIDTH // 4
     BACKGROUND = pygame.color.Color(255, 255, 255)
     SCALE = 1
     MOVE_STEP = int(Server.DEFAULT_PLAYER_SIZE/10)
@@ -118,6 +119,10 @@ class Client:
 
         # TODO: generate it in a separate thread.
         font = pygame.font.SysFont('helvetica.ttf', 30)
+        leader_board_font = pygame.font.SysFont('helvetica.ttf', 20)
+
+        leader_board_offset_x = self.DEFAULT_WIDTH - self.DEFAULT_LEADER_BOARD_WIDTH
+        leader_board_font_height = font.render('#0 TEST', True, (0, 0, 0)).get_height()
 
         self.receive_get()
         x, y = self.players[self.nick][:2]
@@ -141,6 +146,7 @@ class Client:
                 if e.type == pygame.VIDEORESIZE:
                     surface = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
                     offset_x, offset_y = calculate_offset(x, y, e.w, e.h)
+                    leader_board_offset_x = e.w - self.DEFAULT_LEADER_BOARD_WIDTH
 
             keys = pygame.key.get_pressed()
 
@@ -163,13 +169,21 @@ class Client:
             post_thread.start()
 
             surface.fill(self.BACKGROUND)
+            iter_count = 0
             for nick, v in self.players.items():
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
                 draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
 
-                image = font.render(nick, True, (0, 0, 0))
-                rect = image.get_rect(center=(screen_x, screen_y))
-                surface.blit(image, rect)
+                nick_image = font.render(nick, True, (0, 0, 0))
+                rect = nick_image.get_rect(center=(screen_x, screen_y))
+                surface.blit(nick_image, rect)
+
+                if iter_count < 10 or nick == self.nick:
+                    lb_nick_image = leader_board_font.render("#{} {}".format(iter_count + 1, nick), True, (0, 0, 0))
+                    lb_rect = lb_nick_image.get_rect(topleft=(leader_board_offset_x,
+                                                              leader_board_font_height * iter_count))
+                    surface.blit(lb_nick_image, lb_rect)
+                iter_count += 1
 
             for v in self.food:
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
