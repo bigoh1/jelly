@@ -3,6 +3,7 @@ from jelly.client import Client
 import argparse
 import random
 import string
+import PySimpleGUI as sg
 
 
 def random_nick(length=10):
@@ -17,7 +18,10 @@ def main():
     if args.mode[0].startswith('s'):
         server = Server()
     else:
-        client = Client(nick=random_nick())
+        event, values = sg.Window('Jelly', [[sg.T("Your nick name:")],
+                                            [sg.I(key='nick')],
+                                            [sg.B('Ok')]]).read(close=True)
+        client = Client(nick=values['nick'])
 
 
 if __name__ == '__main__':
