@@ -65,6 +65,10 @@ class Client:
 
         self.time_left = Server.GAME_TIME
 
+        self.font_lock = threading.Lock()
+        self.small_font = None
+        self.large_font = None
+
         # Draw GUI
         self.game_loop()
 
@@ -121,18 +125,22 @@ class Client:
         """Sends `SPAWN` command to the server."""
         self.send_command(self.SPAWN)
 
+    def render_fonts(self):
+        self.font_lock.acquire()
+        self.small_font = pygame.font.Font(None, 20)
+        self.large_font = pygame.font.Font(None, 30)
+        self.font_lock.release()
+
     def game_loop(self):
         pygame.init()
 
         surface = pygame.display.set_mode((self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Jelly")
 
-        # TODO: generate it in a separate thread.
-        font = pygame.font.SysFont('helvetica.ttf', 30)
-        leader_board_font = pygame.font.SysFont('helvetica.ttf', 20)
+        threading.Thread(target=self.render_fonts, daemon=True).start()
 
         leader_board_offset_x = self.DEFAULT_WIDTH - self.DEFAULT_LEADER_BOARD_WIDTH
-        leader_board_font_height = font.render('#0 TEST', True, (0, 0, 0)).get_height()
+        leader_board_font_height = None
 
         self.receive_get()
         x, y = self.players[self.nick][:2]
@@ -183,17 +191,21 @@ class Client:
 
             surface.fill(self.BACKGROUND)
 
-            draw_text(surface, leader_board_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
+            if not self.font_lock.locked():
+                draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
 
             iter_count = 0
             for nick, v in self.players.items():
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
                 draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
 
-                draw_text(surface, font, nick, (0, 0, 0), center=(screen_x, screen_y))
+                if not self.font_lock.locked():
+                    draw_text(surface, self.large_font, nick, (0, 0, 0), center=(screen_x, screen_y))
 
-                if iter_count < 10 or nick == self.nick:
-                    draw_text(surface, leader_board_font, "#{} {}".format(iter_count + 1, nick), (0, 0, 0),
+                if (iter_count < 10 or nick == self.nick) and not self.font_lock.locked():
+                    if leader_board_font_height is None:
+                        leader_board_font_height = self.large_font.render('#0 TEST', True, (0, 0, 0)).get_height()
+                    draw_text(surface, self.small_font, "#{} {}".format(iter_count + 1, nick), (0, 0, 0),
                               topleft=(leader_board_offset_x, leader_board_font_height * iter_count))
                 iter_count += 1
 
