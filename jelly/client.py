@@ -15,6 +15,12 @@ def draw_circle(window: pygame.Surface, x: int, y: int, radius: int, color: pyga
     gfxdraw.filled_circle(window, x, y, radius, color)
 
 
+def draw_text(surface: pygame.Surface, font: pygame.font.Font, text: str, color=(0, 0, 0), **kargs):
+    image = font.render(text, True, color)
+    rect = image.get_rect(**kargs)
+    surface.blit(image, rect)
+
+
 def world_to_screen(x: int, y: int, offset_x: int, offset_y: int):
     return x - offset_x, y - offset_y
 
@@ -57,6 +63,8 @@ class Client:
         # Create a player with the same nick at the server side.
         self.send_spawn()
 
+        self.time_left = Server.GAME_TIME
+
         # Draw GUI
         self.game_loop()
 
@@ -91,6 +99,8 @@ class Client:
         parsed_response = json.loads(response.decode("UTF-8"))
         self.players = parsed_response["players"]
         self.food = parsed_response["food"]
+        self.time_left = parsed_response["time_left"]
+
         self.assign_colors()
 
     def assign_colors(self) -> None:
@@ -165,24 +175,26 @@ class Client:
 
             get_thread.join()
 
+            if self.time_left <= 0:
+                break
+
             post_thread = threading.Thread(target=self.send_move, args=(x, y), daemon=True)
             post_thread.start()
 
             surface.fill(self.BACKGROUND)
+
+            draw_text(surface, leader_board_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
+
             iter_count = 0
             for nick, v in self.players.items():
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
                 draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
 
-                nick_image = font.render(nick, True, (0, 0, 0))
-                rect = nick_image.get_rect(center=(screen_x, screen_y))
-                surface.blit(nick_image, rect)
+                draw_text(surface, font, nick, (0, 0, 0), center=(screen_x, screen_y))
 
                 if iter_count < 10 or nick == self.nick:
-                    lb_nick_image = leader_board_font.render("#{} {}".format(iter_count + 1, nick), True, (0, 0, 0))
-                    lb_rect = lb_nick_image.get_rect(topleft=(leader_board_offset_x,
-                                                              leader_board_font_height * iter_count))
-                    surface.blit(lb_nick_image, lb_rect)
+                    draw_text(surface, leader_board_font, "#{} {}".format(iter_count + 1, nick), (0, 0, 0),
+                              topleft=(leader_board_offset_x, leader_board_font_height * iter_count))
                 iter_count += 1
 
             for v in self.food:

@@ -3,6 +3,7 @@ import threading
 import json
 from math import sqrt
 import random
+import time
 
 
 class ClientInvalidDataError(RuntimeError):
@@ -30,6 +31,9 @@ class Server:
     MAP_WIDTH = 1000
     MAP_HEIGHT = 500
 
+    # In seconds.
+    GAME_TIME = 20
+
     # A collection of constant strings for information interchange between a client and the server.
     GET = 'GET'
     SPAWN = 'SPAWN'
@@ -42,6 +46,8 @@ class Server:
 
         self.food = []
         self.food_mutex = threading.Lock()
+
+        self.start_time = time.time()
 
         # Spawn `FOOD_NUM` units of food.
         for _ in range(self.FOOD_NUM):
@@ -95,10 +101,13 @@ class Server:
         # TODO: implement
         return 1, 1
 
+    def left_time(self):
+        return self.GAME_TIME - (time.time() - self.start_time)
+
     def get_players_and_food(self) -> str:
         """Returns a `JSON` string of players and food data. Used to implement `GET` command."""
         # TODO: catch exceptions
-        return json.dumps({"players": self.players, "food": self.food})
+        return json.dumps({"players": self.players, "food": self.food, "time_left": self.left_time()})
 
     def is_eaten(self, a: str, b: str) -> (str, str):
         """Checks if `a` ate `b` or vise versa. If `a` ate `b`, returns tuple (`a`, `b`); otherwise (`b`, `a`).
