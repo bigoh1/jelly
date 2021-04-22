@@ -25,8 +25,8 @@ def random_color() -> pygame.Color:
 
 
 class Client:
-    WIDTH = 1000
-    HEIGHT = 500
+    DEFAULT_WIDTH = 500
+    DEFAULT_HEIGHT = 500
     BACKGROUND = pygame.color.Color(255, 255, 255)
     SCALE = 1
     MOVE_STEP = int(Server.DEFAULT_PLAYER_SIZE/10)
@@ -112,7 +112,8 @@ class Client:
 
     def game_loop(self):
         pygame.init()
-        window = pygame.display.set_mode((Client.WIDTH, Client.HEIGHT))
+
+        surface = pygame.display.set_mode((self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Jelly")
 
         # TODO: generate it in a separate thread.
@@ -121,8 +122,10 @@ class Client:
         self.receive_get()
         x, y = self.players[self.nick][:2]
 
-        offset_x = int(x - self.WIDTH/2)
-        offset_y = int(y - self.HEIGHT/2)
+        def calculate_offset(world_x, world_y, width, height):
+            return int(world_x - width/2), int(world_y - height/2)
+
+        offset_x, offset_y = calculate_offset(x, y, *surface.get_size())
 
         run = True
         while run:
@@ -135,6 +138,9 @@ class Client:
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     run = False
+                if e.type == pygame.VIDEORESIZE:
+                    surface = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
+                    offset_x, offset_y = calculate_offset(x, y, e.w, e.h)
 
             keys = pygame.key.get_pressed()
 
@@ -156,19 +162,19 @@ class Client:
             post_thread = threading.Thread(target=self.send_move, args=(x, y), daemon=True)
             post_thread.start()
 
-            window.fill(self.BACKGROUND)
+            surface.fill(self.BACKGROUND)
             for nick, v in self.players.items():
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
-                draw_circle(window, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
+                draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
 
                 image = font.render(nick, True, (0, 0, 0))
                 rect = image.get_rect(center=(screen_x, screen_y))
-                window.blit(image, rect)
+                surface.blit(image, rect)
 
             for v in self.food:
                 screen_x, screen_y = world_to_screen(v[0], v[1], offset_x, offset_y)
                 temp = (v[0], v[1])
-                draw_circle(window, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
+                draw_circle(surface, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
 
             pygame.display.update()
 
