@@ -32,7 +32,7 @@ class Client:
     DEFAULT_LEADER_BOARD_WIDTH = DEFAULT_WIDTH // 4
     BACKGROUND = pygame.color.Color(255, 255, 255)
     SCALE = 1
-    MOVE_STEP = int(Server.DEFAULT_PLAYER_SIZE/10)
+    MOVE_STEP = int(Server.DEFAULT_PLAYER_SIZE/4)
     LARGE_FONT_SIZE = 30
     SMALL_FONT_SIZE = 20
 
@@ -102,8 +102,6 @@ class Client:
         self.food = parsed_response["food"]
         self.time_left = parsed_response["time_left"]
 
-        self.assign_colors()
-
     def assign_colors(self) -> None:
         for player in self.players:
             if player not in self.player_colors:
@@ -112,6 +110,11 @@ class Client:
             temp = (food[0], food[1])
             if temp not in self.food_colors:
                 self.food_colors[temp] = random_color()
+
+    def calculate_move_step(self):
+        """Assume the player have grown by `g` times. Therefore slow down by `g` times."""
+        times = self.players[self.nick][2]/Server.DEFAULT_PLAYER_SIZE
+        self.MOVE_STEP = round(Server.DEFAULT_PLAYER_SIZE/(4*times))
 
     def send_move(self, x: int, y: int):
         """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
@@ -223,6 +226,7 @@ class Client:
             elif self.time_left > 0:
                 keys = pygame.key.get_pressed()
 
+                self.calculate_move_step()
                 if keys[pygame.K_LEFT]:
                     x -= self.MOVE_STEP
                     offset_x -= self.MOVE_STEP
@@ -244,6 +248,7 @@ class Client:
 
                 self.draw_leader_board(surface, lb_offset_x, lb_text_height)
 
+                self.assign_colors()
                 for nick, v in self.players.items():
                     screen_x, screen_y = Client.world_to_screen(v[0], v[1], offset_x, offset_y)
                     draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
