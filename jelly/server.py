@@ -98,8 +98,7 @@ class Server:
     def gen_player_spawn_coords(vicinity: int) -> (int, int):
         """Returns a point P(x, y) such that there are no player points in the circle
             with the centre at P and radius `vicinity`"""
-        # TODO: implement
-        return 1, 1
+        return random.randrange(Server.MAP_WIDTH), random.randrange(Server.MAP_HEIGHT)
 
     def left_time(self):
         return self.GAME_TIME - (time.time() - self.start_time)
