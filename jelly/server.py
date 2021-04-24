@@ -28,11 +28,11 @@ class Server:
     # Increment the size of a player who ate a food unit by `FOOD_INCREMENT`
     FOOD_INCREMENT = 2
 
-    MAP_WIDTH = 1000
-    MAP_HEIGHT = 500
+    MAP_WIDTH = 2000
+    MAP_HEIGHT = 2000
 
     # In seconds.
-    GAME_TIME = 20
+    GAME_TIME = 2*60
 
     # A collection of constant strings for information interchange between a client and the server.
     GET = 'GET'
@@ -187,7 +187,7 @@ class Server:
         with conn:
             while True:
                 # Receive client data.
-                raw_data = conn.recv(2048)
+                raw_data = conn.recv(4096)
                 if not raw_data:
                     break
 
