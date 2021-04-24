@@ -244,9 +244,6 @@ class Client:
                 post_thread.start()
 
                 get_thread.join()
-                draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
-
-                self.draw_leader_board(surface, lb_offset_x, lb_text_height)
 
                 self.assign_colors()
                 for nick, v in self.players.items():
@@ -259,6 +256,9 @@ class Client:
                     screen_x, screen_y = Client.world_to_screen(v[0], v[1], offset_x, offset_y)
                     temp = (v[0], v[1])
                     draw_circle(surface, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
+
+                draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
+                self.draw_leader_board(surface, lb_offset_x, lb_text_height)
 
                 post_thread.join()
             else:
