@@ -156,6 +156,15 @@ class Client:
         """
         return x - offset_x, y - offset_y
 
+    @staticmethod
+    def is_circle_on_screen(x: int, y: int, r: int, w: int, h: int):
+        """Returns True, if a circle with radius `r` and center at (`x`, `y`) is
+        on the screen with width `w` and height `h`. Assume each point (`i`, `j`) is on the screen
+        iff 0 <= i < w and 0 <= j < h."""
+        p = (0 <= x + r < w) or (0 <= x - r < w)
+        q = (0 <= y + r < w) or (0 <= y - r < w)
+        return p and q
+
     def died(self, surface: pygame.Surface, lb_offset_x: int, lb_text_height: int):
         draw_text(surface, self.large_font, "Game Over",
                   center=(surface.get_width() // 2, surface.get_height() // 2))
@@ -248,14 +257,16 @@ class Client:
                 self.assign_colors()
                 for nick, v in self.players.items():
                     screen_x, screen_y = Client.world_to_screen(v[0], v[1], offset_x, offset_y)
-                    draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
-
-                    draw_text(surface, self.large_font, nick, (0, 0, 0), center=(screen_x, screen_y))
+                    if Client.is_circle_on_screen(screen_x, screen_y, v[2], *surface.get_size()):
+                        draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
+                        draw_text(surface, self.large_font, nick, (0, 0, 0), center=(screen_x, screen_y))
 
                 for v in self.food:
                     screen_x, screen_y = Client.world_to_screen(v[0], v[1], offset_x, offset_y)
                     temp = (v[0], v[1])
-                    draw_circle(surface, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
+
+                    if Client.is_circle_on_screen(screen_x, screen_y, Client.FOOD_SIZE, *surface.get_size()):
+                        draw_circle(surface, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
 
                 draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
                 self.draw_leader_board(surface, lb_offset_x, lb_text_height)
