@@ -27,27 +27,30 @@ def random_color() -> pygame.Color:
 
 
 class Client:
-    DEFAULT_WIDTH = 500
-    DEFAULT_HEIGHT = 500
-    DEFAULT_LEADER_BOARD_WIDTH = DEFAULT_WIDTH // 4
+    DEFAULT_SCREEN_WIDTH = 500
+    DEFAULT_SCREEN_HEIGHT = 500
+    DEFAULT_LEADER_BOARD_WIDTH = DEFAULT_SCREEN_WIDTH // 4
     BACKGROUND = pygame.color.Color(255, 255, 255)
-    SCALE = 1
-    MOVE_STEP = int(Server.DEFAULT_PLAYER_SIZE/4)
     LARGE_FONT_SIZE = 30
     SMALL_FONT_SIZE = 20
-
     FOOD_SIZE = 5
 
-    def __init__(self, nick: str, server_host=Server.HOST, server_port=Server.PORT):
+    def __init__(self, nick: str, host='127.0.0.1', port=1513, width=DEFAULT_SCREEN_WIDTH, height=DEFAULT_SCREEN_HEIGHT):
         self.nick = nick
+
+        self.HOST = host
+        self.PORT = port
+
+        self.DEFAULT_SCREEN_WIDTH = width
+        self.DEFAULT_SCREEN_HEIGHT = height
+
+        self.move_step = round(Server.DEFAULT_PLAYER_SIZE/4)
+
         self.players = dict()
         self.food = []
 
         self.player_colors = dict()
         self.food_colors = dict()
-
-        self.HOST = server_host
-        self.PORT = server_port
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((self.HOST, self.PORT))
@@ -61,7 +64,7 @@ class Client:
         # Create a player with the same nick at the server side.
         self.send_spawn()
 
-        self.time_left = Server.GAME_TIME
+        self.time_left = None
 
         self.small_font, self.large_font = None, None
         self.winner = None
@@ -114,7 +117,7 @@ class Client:
     def calculate_move_step(self):
         """Assume the player have grown by `g` times. Therefore slow down by `g` times."""
         times = self.players[self.nick][2]/Server.DEFAULT_PLAYER_SIZE
-        self.MOVE_STEP = round(Server.DEFAULT_PLAYER_SIZE/(4*times))
+        self.move_step = round(Server.DEFAULT_PLAYER_SIZE/(4*times))
 
     def send_move(self, x: int, y: int):
         """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
@@ -197,12 +200,12 @@ class Client:
         pygame.init()
 
         # Create a resizable window.
-        surface = pygame.display.set_mode((self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT), pygame.RESIZABLE)
+        surface = pygame.display.set_mode((self.DEFAULT_SCREEN_WIDTH, self.DEFAULT_SCREEN_HEIGHT), pygame.RESIZABLE)
         pygame.display.set_caption("Jelly - {}".format(self.nick))
 
         self.small_font, self.large_font = Client.render_fonts()
 
-        lb_offset_x = self.DEFAULT_WIDTH - self.DEFAULT_LEADER_BOARD_WIDTH
+        lb_offset_x = self.DEFAULT_SCREEN_WIDTH - self.DEFAULT_LEADER_BOARD_WIDTH
         lb_text_height = self.large_font.render('#0 TEST', True, (0, 0, 0)).get_height()
 
         self.receive_get()
@@ -237,17 +240,17 @@ class Client:
 
                 self.calculate_move_step()
                 if keys[pygame.K_LEFT]:
-                    x -= self.MOVE_STEP
-                    offset_x -= self.MOVE_STEP
+                    x -= self.move_step
+                    offset_x -= self.move_step
                 if keys[pygame.K_UP]:
-                    y -= self.MOVE_STEP
-                    offset_y -= self.MOVE_STEP
+                    y -= self.move_step
+                    offset_y -= self.move_step
                 if keys[pygame.K_RIGHT]:
-                    x += self.MOVE_STEP
-                    offset_x += self.MOVE_STEP
+                    x += self.move_step
+                    offset_x += self.move_step
                 if keys[pygame.K_DOWN]:
-                    y += self.MOVE_STEP
-                    offset_y += self.MOVE_STEP
+                    y += self.move_step
+                    offset_y += self.move_step
 
                 post_thread = threading.Thread(target=self.send_move, args=(x, y), daemon=True)
                 post_thread.start()
@@ -257,8 +260,8 @@ class Client:
                 self.assign_colors()
                 for nick, v in self.players.items():
                     screen_x, screen_y = Client.world_to_screen(v[0], v[1], offset_x, offset_y)
-                    if Client.is_circle_on_screen(screen_x, screen_y, v[2], *surface.get_size()):
-                        draw_circle(surface, screen_x, screen_y, v[2]*self.SCALE, self.player_colors[nick])
+                    if Client.is_circle_on_screen(screen_x, screen_y, v[2], *surface.get_size()) or nick == self.nick:
+                        draw_circle(surface, screen_x, screen_y, v[2], self.player_colors[nick])
                         draw_text(surface, self.large_font, nick, (0, 0, 0), center=(screen_x, screen_y))
 
                 for v in self.food:

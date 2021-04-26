@@ -16,7 +16,6 @@ class Server:
 
     # TODO: move into a config file.
     HOST = 'localhost'
-    # TODO: choose another port.
     PORT = 1513
 
     # When a player is spawned, its size is equal to this value.
@@ -40,7 +39,17 @@ class Server:
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
 
-    def __init__(self):
+    def __init__(self, host=HOST, port=PORT, food_num=FOOD_NUM,
+                 food_increment=FOOD_INCREMENT, width=MAP_WIDTH, height=MAP_HEIGHT, game_time=GAME_TIME):
+
+        self.HOST = host
+        self.PORT = port
+        self.FOOD_NUM = food_num
+        self.FOOD_INCREMENT = food_increment
+        self.MAP_WIDTH = width
+        self.MAP_HEIGHT = height
+        self.GAME_TIME = game_time
+
         self.players = dict()
         self.players_mutex = threading.Lock()
 
@@ -62,13 +71,12 @@ class Server:
             raise ClientInvalidDataError("Nickname '{}' isn't valid because is contains a "
                                          "non-printable character".format(nick))
 
-    @staticmethod
-    def assert_coords(x: int, y: int, radius: int) -> None:
+    def assert_coords(self, x: int, y: int, radius: int) -> None:
         """Checks a circle with the center at point (`x`, `y`) and radius `radius` is on the map.
         If it isn't, raise an exception"""
 
-        if not (radius > 0 and 0 <= x - radius < Server.MAP_WIDTH and 0 <= x + radius < Server.MAP_WIDTH
-                and 0 <= y - radius < Server.MAP_HEIGHT and 0 <= y + radius < Server.MAP_HEIGHT):
+        if not (radius > 0 and 0 <= x - radius < self.MAP_WIDTH and 0 <= x + radius < self.MAP_WIDTH
+                and 0 <= y - radius < self.MAP_HEIGHT and 0 <= y + radius < self.MAP_HEIGHT):
             raise ClientInvalidDataError("Player with center at ({}, {}) and size {} isn't on the map."
                                          .format(x, y, radius))
 
@@ -94,11 +102,10 @@ class Server:
         self.food.remove((x_food, y_food))
         self.food_mutex.release()
 
-    @staticmethod
-    def gen_player_spawn_coords(vicinity: int) -> (int, int):
+    def gen_player_spawn_coords(self, vicinity: int) -> (int, int):
         """Returns a point P(x, y) such that there are no player points in the circle
             with the centre at P and radius `vicinity`"""
-        return random.randrange(Server.MAP_WIDTH), random.randrange(Server.MAP_HEIGHT)
+        return random.randrange(self.MAP_WIDTH), random.randrange(self.MAP_HEIGHT)
 
     def left_time(self):
         return self.GAME_TIME - (time.time() - self.start_time)
@@ -232,9 +239,9 @@ class Server:
         """Accepts connections. After a client has connected, talks to it in a separate thread
             at Server.listen_to_client()."""
 
-        # Open a TCP IPv4 socket at HOST=Server.HOST and PORT=Server.PORT
+        # Open a TCP IPv4 socket at HOST=Server.HOST and port=Server.port
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind((Server.HOST, Server.PORT))
+            sock.bind((self.HOST, self.PORT))
             # Allow up to 64 connection to queue up.
             sock.listen(64)
 
