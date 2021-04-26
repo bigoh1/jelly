@@ -11,12 +11,18 @@ Installation
 ============
 ```bash
 # The same part:
-$ git clone https://github.com/multifrench/jelly.git jelly; cd jelly
+$ git clone https://github.com/multifrench/jelly.git jelly && cd jelly
+$ python3 -m pip install virtualenv && python3 -m virtualenv .venv && source .venv/bin/activate
 $ python3 -m pip install -r requirements.txt
 # At server side:
 $ python3 main.py server
 # At client side:
 $ python3 main.py client
+```
+
+One-liner:
+```bash
+$ git clone https://github.com/multifrench/jelly.git jelly && cd jelly && python3 -m pip install virtualenv && python3 -m virtualenv .venv && source .venv/bin/activate && python3 -m pip install -r requirements.txt
 ```
 
 Rules
