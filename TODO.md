@@ -1,7 +1,7 @@
 TODO
 ====
 * [X] Add instructions how to install in a venv.
-* [ ] Document the JSON protocol.
+* [X] Document the JSON protocol.
 * [X] Add more command line arguments.
 * [X] Add config file.
 * [X] Restart the server after time's out.
