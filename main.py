@@ -23,11 +23,15 @@ def main():
     parser.add_argument('-fn', '--food-num', type=int, help='Number of units food on the map.')
     parser.add_argument('-fi', '--food-increment', type=int,
                         help='If a player ate a food unit its size will increase by this number.')
+    parser.add_argument('-rt', '--restart-time', type=int, metavar='RT',
+                        help='After game time is out, what for `RT` seconds before respawning players.')
 
     parser.add_argument('--help', action='help')
     # TODO: add logging & version param
     # parser.add_argument('-l', '--log', help='Enable logging.')
     # parser.add_argument('-v', '--version', help='Print version info and exit.')
+
+    SERVER_ARGS = ('game_time', 'food_num', 'food_increment', 'restart_time')
 
     args = parser.parse_args()
     kwargs = dict()
@@ -45,14 +49,14 @@ def main():
         if 'height' not in kwargs:
             kwargs['height'] = config['DEFAULT'].getint('MAP_HEIGHT')
 
-        for param in ('game_time', 'food_num', 'food_increment'):
+        for param in SERVER_ARGS:
             if param not in kwargs:
                 kwargs[param] = config['DEFAULT'].getint(param.capitalize())
 
         server = Server(**kwargs)
     elif args.mode == 'client':
         stop = False
-        for param in ('game_time', 'food_num', 'food_increment'):
+        for param in SERVER_ARGS:
             if param in kwargs:
                 print("Argument `--{}` is not required while running in `client` mode.".format(param))
                 stop = True

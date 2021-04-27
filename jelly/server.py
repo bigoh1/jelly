@@ -23,7 +23,7 @@ class Server:
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
 
-    def __init__(self, host, port, food_num, food_increment, width, height, game_time):
+    def __init__(self, host, port, food_num, food_increment, width, height, game_time, restart_time):
         self.HOST = host
         self.PORT = port
         self.FOOD_NUM = food_num
@@ -31,6 +31,7 @@ class Server:
         self.MAP_WIDTH = width
         self.MAP_HEIGHT = height
         self.GAME_TIME = game_time
+        self.RESTART_TIME = restart_time
 
         self.players = dict()
         self.players_mutex = threading.Lock()
@@ -84,10 +85,24 @@ class Server:
         self.food.remove((x_food, y_food))
         self.food_mutex.release()
 
-    def gen_player_spawn_coords(self, vicinity: int) -> (int, int):
+    def gen_player_spawn_coords(self) -> (int, int):
         """Returns a point P(x, y) such that there are no player points in the circle
             with the centre at P and radius `vicinity`"""
         return random.randrange(self.MAP_WIDTH), random.randrange(self.MAP_HEIGHT)
+
+    def clear(self):
+        """Respawn all players and food."""
+        for nick in list(self.players.keys())[:]:
+            self.players_mutex.acquire()
+            self.players.pop(nick)
+            self.players_mutex.release()
+            self.spawn_player(nick, *self.gen_player_spawn_coords())
+
+        self.food_mutex.acquire()
+        self.food.clear()
+        self.food_mutex.release()
+        for _ in range(self.FOOD_NUM):
+            self.spawn_food()
 
     def left_time(self):
         return self.GAME_TIME - (time.time() - self.start_time)
@@ -95,6 +110,9 @@ class Server:
     def get_players_and_food(self) -> str:
         """Returns a `JSON` string of players and food data. Used to implement `GET` command."""
         # TODO: catch exceptions
+        if self.left_time() <= -self.RESTART_TIME:
+            self.start_time = time.time()
+            self.clear()
         return json.dumps({"players": self.players, "food": self.food, "time_left": self.left_time()})
 
     def is_eaten(self, a: str, b: str) -> (str, str):
@@ -194,7 +212,7 @@ class Server:
                         if command == Server.SPAWN:
                             # Check user data.
                             self.assert_nick(args)
-                            self.spawn_player(args, *self.gen_player_spawn_coords(Server.DEFAULT_PLAYER_SIZE))
+                            self.spawn_player(args, *self.gen_player_spawn_coords())
                         # MOVE
                         elif command == Server.MOVE:
                             if not args[0] in self.players:

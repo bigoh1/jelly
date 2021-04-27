@@ -171,7 +171,7 @@ class Client:
                   center=(surface.get_width() // 2, surface.get_height() // 2))
         self.draw_leader_board(surface, lb_offset_x, lb_text_height)
 
-    def timeout(self, surface: pygame.Surface, lb_offset_x: int, lb_text_height: int):
+    def timeout(self, surface: pygame.Surface, lb_offset_x: int, lb_text_height: int, time_left: int):
         if self.winner is None:
             # TODO: do NOT rely on implementation-dependent behaviour.
             #  Items of the dictionary aren't required to be sorted.
@@ -179,6 +179,8 @@ class Client:
 
         draw_text(surface, self.large_font, "{} is the winner!".format(self.winner),
                   center=(surface.get_width() // 2, surface.get_height() // 2))
+        draw_text(surface, self.large_font, "Reconnecting {}".format(abs(time_left)),
+                  midbottom=(surface.get_width() // 2, surface.get_height()-1))
 
         self.draw_leader_board(surface, lb_offset_x, lb_text_height)
 
@@ -274,7 +276,7 @@ class Client:
 
                 post_thread.join()
             else:
-                self.timeout(surface, lb_offset_x, lb_text_height)
+                self.timeout(surface, lb_offset_x, lb_text_height, int(-self.time_left)+1)
 
             pygame.display.update()
         pygame.quit()

@@ -4,7 +4,7 @@ TODO
 * [ ] Document the JSON protocol.
 * [X] Add more command line arguments.
 * [X] Add config file.
-* [ ] Restart the server after time's out.
+* [X] Restart the server after time's out.
 * [ ] Write unit tests
 * [ ] Make food bigger
 * [ ] 'Eating threshold': do not eat a player who's smaller that you're by less than 25%.
