@@ -14,24 +14,8 @@ class ClientInvalidDataError(RuntimeError):
 class Server:
     """Server side of Jelly app."""
 
-    # TODO: move into a config file.
-    HOST = 'localhost'
-    PORT = 1513
-
     # When a player is spawned, its size is equal to this value.
     DEFAULT_PLAYER_SIZE = 50
-
-    # Number of the food on the map.
-    FOOD_NUM = 30
-
-    # Increment the size of a player who ate a food unit by `FOOD_INCREMENT`
-    FOOD_INCREMENT = 2
-
-    MAP_WIDTH = 2000
-    MAP_HEIGHT = 2000
-
-    # In seconds.
-    GAME_TIME = 2*60
 
     # A collection of constant strings for information interchange between a client and the server.
     GET = 'GET'
@@ -39,9 +23,7 @@ class Server:
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
 
-    def __init__(self, host=HOST, port=PORT, food_num=FOOD_NUM,
-                 food_increment=FOOD_INCREMENT, width=MAP_WIDTH, height=MAP_HEIGHT, game_time=GAME_TIME):
-
+    def __init__(self, host, port, food_num, food_increment, width, height, game_time):
         self.HOST = host
         self.PORT = port
         self.FOOD_NUM = food_num

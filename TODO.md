@@ -3,7 +3,7 @@ TODO
 * [X] Add instructions how to install in a venv.
 * [ ] Document the JSON protocol.
 * [X] Add more command line arguments.
-* [ ] Add config file.
+* [X] Add config file.
 * [ ] Restart the server after time's out.
 * [ ] Write unit tests
 * [ ] Make food bigger

@@ -27,15 +27,12 @@ def random_color() -> pygame.Color:
 
 
 class Client:
-    DEFAULT_SCREEN_WIDTH = 500
-    DEFAULT_SCREEN_HEIGHT = 500
-    DEFAULT_LEADER_BOARD_WIDTH = DEFAULT_SCREEN_WIDTH // 4
     BACKGROUND = pygame.color.Color(255, 255, 255)
     LARGE_FONT_SIZE = 30
     SMALL_FONT_SIZE = 20
     FOOD_SIZE = 5
 
-    def __init__(self, nick: str, host='127.0.0.1', port=1513, width=DEFAULT_SCREEN_WIDTH, height=DEFAULT_SCREEN_HEIGHT):
+    def __init__(self, nick: str, host: str, port: int, width: int, height: int):
         self.nick = nick
 
         self.HOST = host
@@ -43,8 +40,9 @@ class Client:
 
         self.DEFAULT_SCREEN_WIDTH = width
         self.DEFAULT_SCREEN_HEIGHT = height
+        self.DEFAULT_LEADER_BOARD_WIDTH = self.DEFAULT_SCREEN_WIDTH // 4
 
-        self.move_step = round(Server.DEFAULT_PLAYER_SIZE/4)
+        self.move_step = round(Server.DEFAULT_PLAYER_SIZE/8)
 
         self.players = dict()
         self.food = []
@@ -219,7 +217,7 @@ class Client:
             get_thread = threading.Thread(target=self.receive_get, daemon=True)
             get_thread.start()
 
-            pygame.time.delay(60)
+            pygame.time.delay(20)
 
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
