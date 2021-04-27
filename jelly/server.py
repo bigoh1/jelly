@@ -124,12 +124,12 @@ class Server:
         d = sqrt((ax - bx)**2 + (ay - by)**2)
 
         if d <= max(ar, br):
-            if ar > br:
+            if ar >= br * 1.25:
                 return a, b
-            elif ar < br:
+            elif ar * 1.25 <= br:
                 return b, a
 
-        # They are too far from each other OR they're of the same size.
+        # They are too far from each other OR they're of the same size in 25% range.
         return None
 
     def is_food_eaten(self, player: str, food: (int, int)) -> bool:
