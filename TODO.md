@@ -6,7 +6,7 @@ TODO
 * [X] Add config file.
 * [X] Restart the server after time's out.
 * [ ] Write unit tests
-* [ ] Make food bigger
+* [X] Make food size random in a chosen range
 * [ ] 'Eating threshold': do not eat a player who's smaller that you're by less than 25%.
 * [ ] Add rare food kind that slows down or speeds up for a limited time.
 * [ ] Add split feature

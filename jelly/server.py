@@ -23,15 +23,15 @@ class Server:
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
 
-    def __init__(self, host, port, food_num, food_increment, width, height, game_time, restart_time):
+    def __init__(self, host, port, food_num, width, height, game_time, restart_time, food_min_size, food_max_size):
         self.HOST = host
         self.PORT = port
         self.FOOD_NUM = food_num
-        self.FOOD_INCREMENT = food_increment
         self.MAP_WIDTH = width
         self.MAP_HEIGHT = height
         self.GAME_TIME = game_time
         self.RESTART_TIME = restart_time
+        self.FOOD_MIN_SIZE, self.FOOD_MAX_SIZE = food_min_size, food_max_size
 
         self.players = dict()
         self.players_mutex = threading.Lock()
@@ -73,19 +73,18 @@ class Server:
 
     def spawn_food(self) -> None:
         """Spawn one unit of food at a random point on the map."""
-        x_random = random.randrange(0, self.MAP_WIDTH)
-        y_random = random.randrange(0, self.MAP_HEIGHT)
+        size_random = random.randint(self.FOOD_MIN_SIZE, self.FOOD_MAX_SIZE)
         self.food_mutex.acquire()
-        self.food.append((x_random, y_random))
+        self.food.append((*self.gen_spawn_coords(), size_random))
         self.food_mutex.release()
 
     def eat_food(self, x_food: int, y_food: int) -> None:
         """Clear the food unit at (`x_food`, `y_food`)."""
         self.food_mutex.acquire()
-        self.food.remove((x_food, y_food))
+        self.food = [f for f in self.food if (f[0] != x_food and f[1] != y_food)]
         self.food_mutex.release()
 
-    def gen_player_spawn_coords(self) -> (int, int):
+    def gen_spawn_coords(self) -> (int, int):
         """Returns a point P(x, y) such that there are no player points in the circle
             with the centre at P and radius `vicinity`"""
         return random.randrange(self.MAP_WIDTH), random.randrange(self.MAP_HEIGHT)
@@ -96,7 +95,7 @@ class Server:
             self.players_mutex.acquire()
             self.players.pop(nick)
             self.players_mutex.release()
-            self.spawn_player(nick, *self.gen_player_spawn_coords())
+            self.spawn_player(nick, *self.gen_spawn_coords())
 
         self.food_mutex.acquire()
         self.food.clear()
@@ -158,9 +157,9 @@ class Server:
                         # TODO: notify the loser that he was eaten.
                         self.grow(loser, -loser_size)
             for f in self.food:
-                if self.is_food_eaten(i, f):
-                    self.grow(i, self.FOOD_INCREMENT)
-                    self.eat_food(*f)
+                if self.is_food_eaten(i, f[:2]):
+                    self.grow(i, f[2])
+                    self.eat_food(*f[:2])
                     # Spawn a food unit after one was eaten.
                     self.spawn_food()
 
@@ -212,7 +211,7 @@ class Server:
                         if command == Server.SPAWN:
                             # Check user data.
                             self.assert_nick(args)
-                            self.spawn_player(args, *self.gen_player_spawn_coords())
+                            self.spawn_player(args, *self.gen_spawn_coords())
                         # MOVE
                         elif command == Server.MOVE:
                             if not args[0] in self.players:

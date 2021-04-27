@@ -266,10 +266,11 @@ class Client:
 
                 for v in self.food:
                     screen_x, screen_y = Client.world_to_screen(v[0], v[1], offset_x, offset_y)
+                    size = v[2]
                     temp = (v[0], v[1])
 
-                    if Client.is_circle_on_screen(screen_x, screen_y, Client.FOOD_SIZE, *surface.get_size()):
-                        draw_circle(surface, screen_x, screen_y, self.FOOD_SIZE, self.food_colors[temp])
+                    if Client.is_circle_on_screen(screen_x, screen_y, size, *surface.get_size()):
+                        draw_circle(surface, screen_x, screen_y, size, self.food_colors[temp])
 
                 draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left)), topleft=(0, 0))
                 self.draw_leader_board(surface, lb_offset_x, lb_text_height)

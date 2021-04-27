@@ -21,8 +21,10 @@ def main():
                         help='Height of the map if the mode is set to `server`. Otherwise height of the screen.')
     parser.add_argument('-t', '--time', type=int, help='The duration of one game round.', dest='game_time')
     parser.add_argument('-fn', '--food-num', type=int, help='Number of units food on the map.')
-    parser.add_argument('-fi', '--food-increment', type=int,
-                        help='If a player ate a food unit its size will increase by this number.')
+    parser.add_argument('-fmin', '--food-min-size', type=int, metavar='FMIN',
+                        help='Food units are generated of a random size in [`FMIN`; `FMAX`].')
+    parser.add_argument('-fmax', '--food-max-size', type=int, metavar='FMAX',
+                        help='Food units are generated of a random size in [`FMIN`; `FMAX`].')
     parser.add_argument('-rt', '--restart-time', type=int, metavar='RT',
                         help='After game time is out, what for `RT` seconds before respawning players.')
 
@@ -31,7 +33,7 @@ def main():
     # parser.add_argument('-l', '--log', help='Enable logging.')
     # parser.add_argument('-v', '--version', help='Print version info and exit.')
 
-    SERVER_ARGS = ('game_time', 'food_num', 'food_increment', 'restart_time')
+    SERVER_ARGS = ('game_time', 'food_num', 'food_min_size', 'food_max_size', 'restart_time')
 
     args = parser.parse_args()
     kwargs = dict()
