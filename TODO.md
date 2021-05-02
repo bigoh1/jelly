@@ -8,7 +8,7 @@ TODO
 * [ ] Write unit tests
 * [X] Make food size random in a chosen range
 * [X] 'Eating threshold': do not eat a player who's smaller that you're by less than 25%.
-* [ ] Add rare food kind that slows down or speeds up for a limited time.
+* [X] Add rare food kind that slows down or speeds up for a limited time.
 * [ ] Add split feature
 * [ ] Add the map bounds.
 * [ ] Player highest score table.

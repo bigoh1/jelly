@@ -110,16 +110,25 @@ class Client:
         for food in self.food:
             temp = (food[0], food[1])
             if temp not in self.food_colors:
-                self.food_colors[temp] = random_color()
+                kind = food[3]
+                if kind == Server.FoodKind.ORDINARY:
+                    self.food_colors[temp] = (255, 0, 0)
+                elif kind == Server.FoodKind.FREEZING:
+                    self.food_colors[temp] = (0, 0, 255)
+                elif kind == Server.FoodKind.SPEEDING_UP:
+                    self.food_colors[temp] = (0, 255, 0)
+                elif kind == Server.FoodKind.SLOWING_DOWN:
+                    self.food_colors[temp] = (0, 255, 255)
 
-    def calculate_move_step(self):
-        """Assume the player have grown by `g` times. Therefore slow down by `g` times."""
-        times = self.players[self.nick][2]/Server.DEFAULT_PLAYER_SIZE
-        self.move_step = round(Server.DEFAULT_PLAYER_SIZE/(4*times))
+    # def calculate_move_step(self):
+    #     self.move_step = Server.calculate_move_step(self.players[self.nick][2])
 
-    def send_move(self, x: int, y: int):
-        """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
-        command = json.dumps({Server.MOVE: [self.nick, x, y]}).encode("UTF-8")
+    # def send_move(self, x: int, y: int):
+    #     """Sends `MOVE` command to the server. `x` and `y` are new coordinates of the player."""
+    #     command = json.dumps({Server.MOVE: [self.nick, x, y]}).encode("UTF-8")
+    #     self.send_command(command)
+    def send_move(self, direction):
+        command = json.dumps({Server.MOVE: [self.nick, int(direction)]}).encode("UTF-8")
         self.send_command(command)
 
     def send_spawn(self):
@@ -209,13 +218,14 @@ class Client:
         lb_text_height = self.large_font.render('#0 TEST', True, (0, 0, 0)).get_height()
 
         self.receive_get()
-        x, y = self.players[self.nick][:2]
+        # x, y = self.players[self.nick][:2]
 
-        offset_x, offset_y = Client.calculate_offset(x, y, *surface.get_size())
+        offset_x, offset_y = Client.calculate_offset(*self.players[self.nick][:2], *surface.get_size())
 
         run = True
         while run:
             # Networking thread
+            old_x, old_y = self.players[self.nick][:2]
             get_thread = threading.Thread(target=self.receive_get, daemon=True)
             get_thread.start()
 
@@ -227,7 +237,7 @@ class Client:
                 if e.type == pygame.VIDEORESIZE:
                     surface = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
                     # Recalculate offsets after the window was resized
-                    offset_x, offset_y = Client.calculate_offset(x, y, e.w, e.h)
+                    offset_x, offset_y = Client.calculate_offset(*self.players[self.nick][:2], e.w, e.h)
                     lb_offset_x = e.w - self.DEFAULT_LEADER_BOARD_WIDTH
 
             surface.fill(self.BACKGROUND)
@@ -238,24 +248,31 @@ class Client:
             elif self.time_left > 0:
                 keys = pygame.key.get_pressed()
 
-                self.calculate_move_step()
+                # self.calculate_move_step()
+                direction = Server.Direction.NONE
                 if keys[pygame.K_LEFT]:
-                    x -= self.move_step
-                    offset_x -= self.move_step
+                    # x -= self.move_step
+                    # offset_x -= self.move_step
+                    direction |= Server.Direction.LEFT
                 if keys[pygame.K_UP]:
-                    y -= self.move_step
-                    offset_y -= self.move_step
+                    # y -= self.move_step
+                    # offset_y -= self.move_step
+                    direction |= Server.Direction.UP
                 if keys[pygame.K_RIGHT]:
-                    x += self.move_step
-                    offset_x += self.move_step
+                    # x += self.move_step
+                    # offset_x += self.move_step
+                    direction |= Server.Direction.RIGHT
                 if keys[pygame.K_DOWN]:
-                    y += self.move_step
-                    offset_y += self.move_step
+                    # y += self.move_step
+                    # offset_y += self.move_step
+                    direction |= Server.Direction.DOWN
 
-                post_thread = threading.Thread(target=self.send_move, args=(x, y), daemon=True)
+                post_thread = threading.Thread(target=self.send_move, args=(direction,), daemon=True)
                 post_thread.start()
 
                 get_thread.join()
+                offset_x += (self.players[self.nick][0] - old_x)
+                offset_y += (self.players[self.nick][1] - old_y)
 
                 self.assign_colors()
                 for nick, v in self.players.items():

@@ -4,6 +4,7 @@ import json
 from math import sqrt
 import random
 import time
+from enum import IntEnum, IntFlag
 
 
 class ClientInvalidDataError(RuntimeError):
@@ -22,6 +23,19 @@ class Server:
     SPAWN = 'SPAWN'
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
+
+    class FoodKind(IntEnum):
+        ORDINARY = 1
+        SLOWING_DOWN = 2
+        SPEEDING_UP = 3
+        FREEZING = 4
+
+    class Direction(IntFlag):
+        NONE = 0
+        LEFT = 1
+        UP = 2
+        RIGHT = 4
+        DOWN = 8
 
     def __init__(self, host, port, food_num, width, height, game_time, restart_time, food_min_size, food_max_size):
         self.HOST = host
@@ -68,14 +82,26 @@ class Server:
         # TODO: check nick
         if nick not in self.players:
             self.players_mutex.acquire()
-            self.players[nick] = [x, y, Server.DEFAULT_PLAYER_SIZE]
+            # TODO: refactor: don't use magic numbers!
+            self.players[nick] = [x, y, Server.DEFAULT_PLAYER_SIZE, 1, 0]
             self.players_mutex.release()
 
     def spawn_food(self) -> None:
         """Spawn one unit of food at a random point on the map."""
         size_random = random.randint(self.FOOD_MIN_SIZE, self.FOOD_MAX_SIZE)
+        # TODO: move percents into another place.
+        random_number = random.randrange(0, 100)
+        if random_number <= 80:
+            food_kind = Server.FoodKind.ORDINARY
+        elif 80 < random_number <= 90:
+            food_kind = Server.FoodKind.SPEEDING_UP
+        elif 90 < random_number <= 95:
+            food_kind = Server.FoodKind.SLOWING_DOWN
+        else:
+            food_kind = Server.FoodKind.FREEZING
+
         self.food_mutex.acquire()
-        self.food.append((*self.gen_spawn_coords(), size_random))
+        self.food.append((*self.gen_spawn_coords(), size_random, int(food_kind)))
         self.food_mutex.release()
 
     def eat_food(self, x_food: int, y_food: int) -> None:
@@ -117,8 +143,8 @@ class Server:
     def is_eaten(self, a: str, b: str) -> (str, str):
         """Checks if `a` ate `b` or vise versa. If `a` ate `b`, returns tuple (`a`, `b`); otherwise (`b`, `a`).
             If none was eaten, returns None"""
-        ax, ay, ar = self.players[a]
-        bx, by, br = self.players[b]
+        ax, ay, ar = self.players[a][:3]
+        bx, by, br = self.players[b][:3]
 
         # d is the distance between centers of `a` & `b`.
         d = sqrt((ax - bx)**2 + (ay - by)**2)
@@ -134,7 +160,7 @@ class Server:
 
     def is_food_eaten(self, player: str, food: (int, int)) -> bool:
         food_x, food_y = food
-        player_x, player_y, player_r = self.players[player]
+        player_x, player_y, player_r = self.players[player][:3]
         d = sqrt((player_x - food_x)**2 + (player_y - food_y)**2)
         return player_r > 1 and d <= player_r
 
@@ -158,14 +184,54 @@ class Server:
                         self.grow(loser, -loser_size)
             for f in self.food:
                 if self.is_food_eaten(i, f[:2]):
-                    self.grow(i, f[2])
                     self.eat_food(*f[:2])
+
+                    food_kind = self.FoodKind(f[3])
+                    if food_kind == self.FoodKind.ORDINARY:
+                        self.grow(i, f[2])
+                    elif food_kind == self.FoodKind.FREEZING:
+                        self.players[i][3] = 0
+                        self.players[i][4] += 100
+                    elif food_kind == self.FoodKind.SPEEDING_UP:
+                        # TODO: Instead of multiplying by magic constant multiply by fractions of size.
+                        # TODO: refactor and document.
+                        self.players[i][3] *= 1.5
+                        self.players[i][4] += 50
+                    elif food_kind == self.FoodKind.SLOWING_DOWN:
+                        self.players[i][3] *= 0.8
+                        self.players[i][4] += 50
+
                     # Spawn a food unit after one was eaten.
                     self.spawn_food()
 
-    def move_player(self, nick: str, x: int, y: int) -> None:
+    @staticmethod
+    def calculate_move_step(size: int, factor: int) -> int:
+        """Returns move step for a player with size `size`"""
+        # Assume the player have grown by `g` times. Therefore slow down by `g` times."""
+        times = size / Server.DEFAULT_PLAYER_SIZE
+        return round(Server.DEFAULT_PLAYER_SIZE / (4 * times) * factor)
+
+    def move_player(self, nick: str, direction) -> None:
         """Changes the position of the player with nick 'nick' to (`x`, `y`)."""
-        # TODO: check values.
+        if self.players[nick][4] <= 0:
+            self.players[nick][4] = 0
+            self.players[nick][3] = 1
+        else:
+            # TODO: revert the value more smoothly. (should depend on size)
+            self.players[nick][4] -= 1
+
+        move_step = self.calculate_move_step(self.players[nick][2], self.players[nick][3])
+
+        x, y = self.players[nick][:2]
+        if Server.Direction.LEFT in direction:
+            x -= move_step
+        if Server.Direction.UP in direction:
+            y -= move_step
+        if Server.Direction.RIGHT in direction:
+            x += move_step
+        if Server.Direction.DOWN in direction:
+            y += move_step
+
         self.players_mutex.acquire()
         self.players[nick][0] = x
         self.players[nick][1] = y
@@ -225,7 +291,7 @@ class Server:
                             #     self.disconnect_player(args[0])
                             #     raise
                             # ====================================
-                            self.move_player(args[0], args[1], args[2])
+                            self.move_player(args[0], Server.Direction(args[1]))
                             self.process_eaten()
                         # DISCONNECT
                         elif command == Server.DISCONNECT:
