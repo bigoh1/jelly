@@ -1,5 +1,7 @@
 from jelly.server import Server
 from jelly.client import Client
+from jelly.food import FoodKind
+import config as default
 import argparse
 import configparser
 
@@ -13,8 +15,8 @@ def main():
                         help="Specify if you'd like to run a server or connect to one.")
 
     parser.add_argument('-n', '--nick', type=str, help='Your nick name. Required if mode is `client`.')
-    parser.add_argument('-p', '--port', type=int, help='Port of the server.', default=config['DEFAULT'].getint('PORT'))
-    parser.add_argument('--host', type=str, help='Host of the server.', default=config['DEFAULT']['HOST'])
+    parser.add_argument('-p', '--port', type=int, help='Port of the server.', default=default.PORT)
+    parser.add_argument('--host', type=str, help='Host of the server.', default=default.HOST)
     parser.add_argument('-w', '--width', type=int,
                         help='With of the map if the mode is set to `server`. Otherwise width of the screen.')
     parser.add_argument('-h', '--height', type=int,
@@ -27,13 +29,17 @@ def main():
                         help='Food units are generated of a random size in [`FMIN`; `FMAX`].')
     parser.add_argument('-rt', '--restart-time', type=int, metavar='RT',
                         help='After game time is out, what for `RT` seconds before respawning players.')
+    parser.add_argument('-fp', '--food-probability', type=int, nargs=len(FoodKind),
+                        help='See the comment for `FOOD_PROBABILITY` in config.py')
+    parser.add_argument('-ip', '--init-player-size', type=int, help='New players will be spawned with this size.')
 
     parser.add_argument('--help', action='help')
     # TODO: add logging & version param
     # parser.add_argument('-l', '--log', help='Enable logging.')
     # parser.add_argument('-v', '--version', help='Print version info and exit.')
 
-    SERVER_ARGS = ('game_time', 'food_num', 'food_min_size', 'food_max_size', 'restart_time')
+    server_args = ('game_time', 'food_num', 'food_min_size', 'food_max_size', 'restart_time', 'food_probability',
+                   'init_player_size')
 
     args = parser.parse_args()
     kwargs = dict()
@@ -47,18 +53,18 @@ def main():
             exit(0)
 
         if 'width' not in kwargs:
-            kwargs['width'] = config['DEFAULT'].getint('MAP_WIDTH')
+            kwargs['width'] = default.MAP_WIDTH
         if 'height' not in kwargs:
-            kwargs['height'] = config['DEFAULT'].getint('MAP_HEIGHT')
+            kwargs['height'] = default.MAP_HEIGHT
 
-        for param in SERVER_ARGS:
+        for param in server_args:
             if param not in kwargs:
-                kwargs[param] = config['DEFAULT'].getint(param.capitalize())
+                kwargs[param] = getattr(default, param.upper())
 
         server = Server(**kwargs)
     elif args.mode == 'client':
         stop = False
-        for param in SERVER_ARGS:
+        for param in server_args:
             if param in kwargs:
                 print("Argument `--{}` is not required while running in `client` mode.".format(param))
                 stop = True
@@ -69,9 +75,9 @@ def main():
             exit(0)
 
         if 'width' not in kwargs:
-            kwargs['width'] = config['DEFAULT'].getint('SCREEN_WIDTH')
+            kwargs['width'] = default.SCREEN_WIDTH
         if 'height' not in kwargs:
-            kwargs['height'] = config['DEFAULT'].getint('SCREEN_HEIGHT')
+            kwargs['height'] = default.SCREEN_HEIGHT
 
         client = Client(**kwargs)
 

@@ -9,6 +9,7 @@ TODO
 * [X] Make food size random in a chosen range
 * [X] 'Eating threshold': do not eat a player who's smaller that you're by less than 25%.
 * [X] Add rare food kind that slows down or speeds up for a limited time.
+* [ ] Print size somewhere on the screen
 * [ ] Add split feature
 * [ ] Add the map bounds.
 * [ ] Player highest score table.
