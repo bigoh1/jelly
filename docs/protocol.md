@@ -1,16 +1,29 @@
-JSON protocol
-=============
+# JSON protocol
 This protocol is used by server and client sides for TCP communication.
 
-`GET` command request (is sent by client)s
-=========================================
+## `GET_MAP_BOUNDS`
+#### Asks server to return width and height of the map.
+### Client request:
+```json
+"GET_MAP_BOUNDS"
+```
+### Server response:
+```json
+{
+  "width": <MAP_WIDTH>,
+  "height": <MAP_HEIGHT>
+}
+```
+- `<MAP_WIDTH>` and `<MAP_HEIGHT>` are with and height of the map, respectively.
+
+
+## `GET`
+#### Asks server to return a list of players, food and end of the round time.
+### Client request: 
 ```json
 "GET"
 ```
-
-`GET` command response (is sent by server)
-==========================================
-
+### Server response:
 ```json
 {
   "players": {
@@ -33,26 +46,28 @@ This protocol is used by server and client sides for TCP communication.
 - `<COLOR>` is an integer triplet in RGB format. Represents color of player `<NICK>`. The server chooses it while spawning a player randomly;
 - `<RE>` is a string that represents a point in time (in ISO format) when the round is over.
 
-`SPAWN` command request
-=======================
+## `SPAWN`
+#### Tells server to spawn a player with nick `<NICK>`.
+### Client request
 ```json
 {
   "SPAWN": "<NICK>"
 }
 ```
-Tells server to spawn a player with nick `<NICK>`.
 
-`DISCONNECT` command request
-============================
+
+## `DISCONNECT`
+#### Tells server that player `<NICK>` has disconnected. Is usually sent if there's an uncaught exception, or the player closed the game.
+### Client request
 ```json
 {
   "DISCONNECT": "<NICK>"
 }
 ```
-Tells server that player `<NICK>` has disconnected. Is usually sent if there's an uncaught exception, or the player closed the game.
 
-`MOVE` command request
-======================
+## `MOVE`
+#### Tells server to move player `<NICK>` to `<DIRECTION>`.
+### Client request
 ```json
 {
   "MOVE": [
@@ -62,5 +77,3 @@ Tells server that player `<NICK>` has disconnected. Is usually sent if there's a
 }
 ```
 - `<DIRECTION>` is integer representation of `Direction` enum.
-
-Tells server to move player `<NICK>` to `<DIRECTION>`.
