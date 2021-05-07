@@ -11,7 +11,7 @@ TODO
 * [X] Add rare food kind that slows down or speeds up for a limited time.
 * [X] Print size somewhere on the screen
 * [ ] Add split feature
-* [ ] Add the map bounds.
+* [X] Add the map bounds.
 * [ ] Player highest score table.
 * [ ] Receive messages of non-constant size at client side.
 * [ ] Notify player if disconnected.

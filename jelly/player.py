@@ -30,6 +30,7 @@ class Player:
 
     def move_step(self, initial_player_size: int):
         """The bigger you're, the slower you're."""
+        assert initial_player_size != 0 and self.size != 0
         g = self.size / initial_player_size
         return round(initial_player_size / (4 * g) * self.speed_factor)
 

@@ -14,6 +14,7 @@ class Server:
 
     # A collection of constant strings for information interchange between a client and the server.
     GET = 'GET'
+    GET_MAP_BOUNDS = 'GET_MAP_BOUNDS'
     SPAWN = 'SPAWN'
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
@@ -23,8 +24,11 @@ class Server:
         self.HOST = host
         self.PORT = port
         self.FOOD_NUM = food_num
+
         self.MAP_WIDTH = width
         self.MAP_HEIGHT = height
+        self.JSON_MAP_BOUNDS = dumps({"width": self.MAP_WIDTH, "height": self.MAP_HEIGHT}).encode("UTF-8")
+
         self.GAME_TIME = timedelta(seconds=game_time)
         self.RESTART_TIME = timedelta(seconds=restart_time)
         self.FOOD_MIN_SIZE, self.FOOD_MAX_SIZE = food_min_size, food_max_size
@@ -53,7 +57,13 @@ class Server:
     def rand_coords(self) -> (int, int):
         """Returns a point P(x, y) such that there are no player points in the circle
             with the centre at P and radius `vicinity`"""
-        return randrange(self.MAP_WIDTH), randrange(self.MAP_HEIGHT)
+        return randrange(self.INIT_PLAYER_SIZE, self.MAP_WIDTH - self.INIT_PLAYER_SIZE),\
+               randrange(self.INIT_PLAYER_SIZE, self.MAP_HEIGHT - self.INIT_PLAYER_SIZE)
+
+    def is_player_on_map_after_move(self, player: Player, direction: Direction) -> bool:
+        x, y = player.coords_after_move(direction, self.INIT_PLAYER_SIZE)
+        r = player.size
+        return (0 <= x - r) and (x + r < self.MAP_WIDTH) and (0 <= y - r) and (y + r < self.MAP_HEIGHT)
 
     def new_round(self):
         """Respawn all players and food. Update start_time (to start a new round)."""
@@ -124,9 +134,13 @@ class Server:
                 data = loads(raw_data.decode("UTF-8"))
 
                 # Handle requests here.
-                # GET
-                if isinstance(data, str) and data == Server.GET:
-                    conn.sendall(self.json_get_data().encode("UTF-8"))
+                if isinstance(data, str):
+                    # GET
+                    if data == Server.GET:
+                        conn.sendall(self.json_get_data().encode("UTF-8"))
+                    # GET_MAP_BOUNDS
+                    if data == Server.GET_MAP_BOUNDS:
+                        conn.sendall(self.JSON_MAP_BOUNDS)
                 elif isinstance(data, dict):
                     for command, args in data.items():
                         # SPAWN
@@ -145,17 +159,9 @@ class Server:
 
                             player = self.players[nick]
 
-                            # ====================================
-                            # radius = self.players[args[0]][2]
-                            # try:
-                            #     cam = self.coords_after_move(args[0], Direction(args[1]))
-                            #     self.assert_coords(*cam, radius)
-                            # except ClientInvalidDataError:
-                            #     continue
-
-                            self.players.move(player, direction)
-                            self.process_moved(player)
-                            # ====================================
+                            if not player.is_dead and self.is_player_on_map_after_move(player, direction):
+                                self.players.move(player, direction)
+                                self.process_moved(player)
 
                         # DISCONNECT
                         elif command == Server.DISCONNECT:

@@ -37,6 +37,7 @@ class Client:
         # Precompute some commands. Those are just JSON binary string. See docs/protocol.md
         self.SPAWN = dumps({Server.SPAWN: self.nick}).encode("UTF-8")
         self.GET = dumps(Server.GET).encode("UTF-8")
+        self.GET_MAP_BOUNDS = dumps(Server.GET_MAP_BOUNDS).encode("UTF-8")
         self.DISCONNECT = dumps({Server.DISCONNECT: self.nick}).encode("UTF-8")
 
         # Create a player with the same nick at the server side.
@@ -101,6 +102,13 @@ class Client:
         """Sends `SPAWN` command to the server."""
         self.send_command(self.SPAWN)
 
+    def get_map_bounds(self):
+        """Asks server to return width and height of the map."""
+        self.send_command(self.GET_MAP_BOUNDS)
+        raw_response = self.receive()
+        response = loads(raw_response.decode("UTF-8"))
+        return response["width"], response["height"]
+
     @staticmethod
     def render_fonts():
         return pygame.font.Font(None, Client.SMALL_FONT_SIZE), pygame.font.Font(None, Client.LARGE_FONT_SIZE)
@@ -146,6 +154,8 @@ class Client:
 
         # Init all data.
         self.receive_get()
+
+        map_wh = self.get_map_bounds()
         run = True
         while run:
             get_thread = Thread(target=self.receive_get, daemon=True)
@@ -160,7 +170,7 @@ class Client:
                     surface = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
                     lb_offset_x = e.w - self.DEFAULT_LEADER_BOARD_WIDTH
 
-            surface.fill(self.BACKGROUND)
+            surface.fill((0, 0, 0))
             self.draw_leader_board(surface, lb_offset_x, lb_text_height)
             if self.players[self.nick].is_dead:
                 get_thread.join()
@@ -187,11 +197,19 @@ class Client:
 
                 get_thread.join()
                 offset_xy = offset(self.players[self.nick].xy, surface.get_size())
+
+                # Draw map bounds
+                top_left_world = (0, 0)
+                top_left_screen = world2screen(top_left_world, offset_xy)
+                rectangle = pygame.Rect(top_left_screen, map_wh)
+                pygame.draw.rect(surface, self.BACKGROUND, rectangle)
+
                 for player in self.players.get_players():
                     screen_xy = world2screen(player.xy, offset_xy)
                     if is_circle_on_screen(screen_xy, player.size, surface.get_size()) or player.nick == self.nick:
                         draw_circle(surface, screen_xy, player.size, player.color)
-                        draw_text(surface, self.large_font, player.nick, (0, 0, 0), center=screen_xy)
+                        nick_color = (192, 192, 192) if player.is_dead else (0, 0, 0)
+                        draw_text(surface, self.large_font, player.nick, nick_color, center=screen_xy)
 
                 for food in self.food.get_food():
                     screen_xy = world2screen(food.xy, offset_xy)
