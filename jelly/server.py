@@ -100,13 +100,13 @@ class Server:
                     self.players.grow(moved, food.size)
                 elif food.kind == FoodKind.SPEEDING_UP:
                     self.players.mul_speed_factor(moved, 1.15)
-                    self.players.inc_speed_effect_time(moved, timedelta(seconds=5))
+                    self.players.set_speed_effect_end_time(moved, timedelta(seconds=5))
                 elif food.kind == FoodKind.SLOWING_DOWN:
                     self.players.mul_speed_factor(moved, 0.95)
-                    self.players.inc_speed_effect_time(moved, timedelta(seconds=5))
+                    self.players.set_speed_effect_end_time(moved, timedelta(seconds=5))
                 elif food.kind == FoodKind.FREEZING:
                     self.players.mul_speed_factor(moved, 0)
-                    self.players.inc_speed_effect_time(moved, timedelta(seconds=7))
+                    self.players.set_speed_effect_end_time(moved, timedelta(seconds=7))
 
                 self.food.spawn(self.rand_coords())
 

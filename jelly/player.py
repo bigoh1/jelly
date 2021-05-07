@@ -101,11 +101,8 @@ class Players:
             # So, we sort players by `size` param to print the leader board at client side later.
             self.data = dict(sorted(self.data.items(), key=lambda item: item[1][2], reverse=True))
 
-    def inc_speed_effect_time(self, player: Player, increment: timedelta):
-        past_delta = self.data[player.nick][4] - datetime.now()
+    def set_speed_effect_end_time(self, player: Player, increment: timedelta):
         new_end = datetime.now() + increment
-        if past_delta.total_seconds() > 0:
-            new_end += past_delta
         with self.mutex:
             self.data[player.nick][4] = new_end
 

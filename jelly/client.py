@@ -200,7 +200,9 @@ class Client:
                         draw_circle(surface, screen_xy, food.size, food.color)
 
                 draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left().total_seconds())),
-                          topleft=(0, 0))
+                          topleft=(2, 0))
+                draw_text(surface, self.small_font, "Size: {}".format(self.players[self.nick].size),
+                          bottomleft=(2, surface.get_height()-1))
                 self.draw_leader_board(surface, lb_offset_x, lb_text_height)
 
                 if direction != Direction.NONE:
