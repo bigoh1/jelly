@@ -189,7 +189,7 @@ class Client:
                 offset_xy = offset(self.players[self.nick].xy, surface.get_size())
                 for player in self.players.get_players():
                     screen_xy = world2screen(player.xy, offset_xy)
-                    if is_circle_on_screen(screen_xy, player.size, surface.get_size()):
+                    if is_circle_on_screen(screen_xy, player.size, surface.get_size()) or player.nick == self.nick:
                         draw_circle(surface, screen_xy, player.size, player.color)
                         draw_text(surface, self.large_font, player.nick, (0, 0, 0), center=screen_xy)
 

@@ -56,7 +56,7 @@ def is_circle_on_screen(xy: (int, int), r: int, width_height: (int, int)):
     iff 0 <= i < w and 0 <= j < h."""
     p = (0 <= xy[0] + r < width_height[0]) or (0 <= xy[0] - r < width_height[0])
     q = (0 <= xy[1] + r < width_height[1]) or (0 <= xy[1] - r < width_height[1])
-    return p and q
+    return p or q
 
 
 def offset(world_xy: (int, int), screen_width_height: (int, int)):
