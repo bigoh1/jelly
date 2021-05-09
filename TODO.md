@@ -5,6 +5,7 @@ TODO
 * [X] Add more command line arguments.
 * [X] Add config file.
 * [X] Restart the server after time's out.
+* [ ] Add constant loose of mass.
 * [ ] Write unit tests
 * [X] Make food size random in a chosen range
 * [X] 'Eating threshold': do not eat a player who's smaller that you're by less than 25%.
