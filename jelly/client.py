@@ -217,18 +217,18 @@ class Client:
                     rectangle = pygame.Rect(top_left_screen, map_wh)
                     pygame.draw.rect(surface, self.BACKGROUND, rectangle)
 
+                    for food in self.food.get_food():
+                        screen_xy = world2screen(food.xy, offset_xy)
+
+                        if is_circle_on_screen(screen_xy, food.size, surface.get_size()):
+                            draw_circle(surface, screen_xy, food.size, food.color)
+
                     for player in self.players.get_players():
                         screen_xy = world2screen(player.xy, offset_xy)
                         if is_circle_on_screen(screen_xy, player.size, surface.get_size()) or player.nick == self.nick:
                             draw_circle(surface, screen_xy, player.size, player.color)
                             nick_color = (192, 192, 192) if player.is_dead else (0, 0, 0)
                             draw_text(surface, self.large_font, player.nick, nick_color, center=screen_xy)
-
-                    for food in self.food.get_food():
-                        screen_xy = world2screen(food.xy, offset_xy)
-
-                        if is_circle_on_screen(screen_xy, food.size, surface.get_size()):
-                            draw_circle(surface, screen_xy, food.size, food.color)
 
                     draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left().total_seconds())),
                               topleft=(2, 0), color=(127, 127, 127))
