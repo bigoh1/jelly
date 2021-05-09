@@ -158,10 +158,10 @@ class Client:
         map_wh = self.get_map_bounds()
         run = True
         while run:
+            pygame.time.delay(20)
+
             get_thread = Thread(target=self.receive_get, daemon=True)
             get_thread.start()
-
-            pygame.time.delay(20)
 
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
@@ -190,9 +190,8 @@ class Client:
                 if keys[pygame.K_DOWN]:
                     direction |= Direction.DOWN
 
-                post_thread = Thread(target=self.send_move, args=(direction,), daemon=True)
-
                 if direction != Direction.NONE:
+                    post_thread = Thread(target=self.send_move, args=(direction,), daemon=True)
                     post_thread.start()
 
                 get_thread.join()
@@ -222,9 +221,6 @@ class Client:
                 draw_text(surface, self.small_font, "Size: {}".format(self.players[self.nick].size),
                           bottomleft=(2, surface.get_height()-1))
                 self.draw_leader_board(surface, lb_offset_x, lb_text_height)
-
-                if direction != Direction.NONE:
-                    post_thread.join()
             else:
                 self.timeout(surface, int(-self.time_left().total_seconds()) + 1)
                 pass
