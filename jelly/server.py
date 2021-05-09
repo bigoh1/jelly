@@ -64,8 +64,7 @@ class Server:
 
     def is_player_on_map_after_move(self, player: Player, direction: Direction) -> bool:
         x, y = player.coords_after_move(direction, self.INIT_PLAYER_SIZE)
-        r = player.size
-        return (0 <= x - r) and (x + r < self.MAP_WIDTH) and (0 <= y - r) and (y + r < self.MAP_HEIGHT)
+        return (0 <= x < self.MAP_WIDTH) and (0 <= y < self.MAP_HEIGHT)
 
     def new_round(self):
         """Respawn all players and food. Update start_time (to start a new round)."""
