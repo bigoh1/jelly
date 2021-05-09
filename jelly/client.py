@@ -134,17 +134,17 @@ class Client:
         draw_text(surface, self.large_font, "Reconnecting {}".format(abs(time_left)),
                   midbottom=(surface.get_width() // 2, surface.get_height()-1))
 
-    def draw_leader_board(self, surface: pygame.Surface, lb_offset_x, lb_text_height):
+    def draw_leader_board(self, surface: pygame.Surface, lb_offset_x, lb_text_height, color=(0, 0, 0)):
         myself_in_top_ten = False
         for iter_count, nick in enumerate(list(self.players.nicks())[:10]):
             if nick == self.nick:
                 myself_in_top_ten = True
-            draw_text(surface, self.small_font, "#{} {}".format(iter_count + 1, nick), (0, 0, 0),
-                      topleft=(lb_offset_x, lb_text_height * iter_count))
+            draw_text(surface, self.small_font, "#{} {}".format(iter_count + 1, nick),
+                      topleft=(lb_offset_x, lb_text_height * iter_count), color=color)
         if not myself_in_top_ten:
             rank = list(self.players.nicks()).index(self.nick)
-            draw_text(surface, self.small_font, "#{} {}".format(rank + 1, self.nick), (0, 0, 0),
-                      topleft=(lb_offset_x, lb_text_height * 10))
+            draw_text(surface, self.small_font, "#{} {}".format(rank + 1, self.nick),
+                      topleft=(lb_offset_x, lb_text_height * 10), color=color)
 
     def game_loop(self):
         pygame.init()
@@ -177,13 +177,14 @@ class Client:
                     surface = pygame.display.set_mode((e.w, e.h), pygame.RESIZABLE)
                     lb_offset_x = e.w - self.DEFAULT_LEADER_BOARD_WIDTH
 
-            surface.fill((0, 0, 0))
-            self.draw_leader_board(surface, lb_offset_x, lb_text_height)
             if connected:
                 if self.players[self.nick].is_dead:
-                    get_thread.join()
+                    surface.fill((255, 255, 255))
+                    self.draw_leader_board(surface, lb_offset_x, lb_text_height)
                     self.died(surface)
                 elif self.time_left().total_seconds() > 0:
+                    surface.fill((0, 0, 0))
+
                     self.winner = None
 
                     keys = pygame.key.get_pressed()
@@ -230,14 +231,18 @@ class Client:
                             draw_circle(surface, screen_xy, food.size, food.color)
 
                     draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left().total_seconds())),
-                              topleft=(2, 0))
+                              topleft=(2, 0), color=(127, 127, 127))
                     draw_text(surface, self.small_font, "Size: {}".format(self.players[self.nick].size),
-                              bottomleft=(2, surface.get_height()-1))
+                              bottomleft=(2, surface.get_height()-1), color=(127, 127, 127))
                     self.draw_leader_board(surface, lb_offset_x, lb_text_height)
+
+                    self.draw_leader_board(surface, lb_offset_x, lb_text_height, color=(127, 127, 127))
                 else:
+                    surface.fill((255, 255, 255))
+                    self.draw_leader_board(surface, lb_offset_x, lb_text_height)
                     self.timeout(surface, int(-self.time_left().total_seconds()) + 1)
-                    pass
             else:
+                surface.fill((255, 255, 255))
                 draw_text(surface, self.large_font, "DISCONNECTED", color=(255, 0, 0),
                           center=(surface.get_width()//2, surface.get_height()//2))
                 draw_text(surface, self.large_font, "Press R to reconnect ...", color=(255, 0, 0),
