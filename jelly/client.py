@@ -6,7 +6,7 @@ from threading import Thread, Lock
 import pygame
 from datetime import datetime, timedelta
 
-from jelly.utils import Direction, assert_nick, draw_text, draw_circle, is_circle_on_screen, world2screen, offset
+from jelly.utils import Direction, assert_nick, draw_text, draw_circle, is_circle_on_screen, world2screen, offset, PropagatingThread
 from jelly.food import Food
 from jelly.player import Players
 
@@ -30,18 +30,15 @@ class Client:
         self.players = Players()
         self.food = Food()
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((self.HOST, self.PORT))
-        self.sock_mutex = Lock()
-
         # Precompute some commands. Those are just JSON binary string. See docs/protocol.md
         self.SPAWN = dumps({Server.SPAWN: self.nick}).encode("UTF-8")
         self.GET = dumps(Server.GET).encode("UTF-8")
         self.GET_MAP_BOUNDS = dumps(Server.GET_MAP_BOUNDS).encode("UTF-8")
         self.DISCONNECT = dumps({Server.DISCONNECT: self.nick}).encode("UTF-8")
 
-        # Create a player with the same nick at the server side.
-        self.send_spawn()
+        self.sock_mutex = Lock()
+        self.sock = None
+        self.connect()
 
         self.round_end = None
         self.winner = None
@@ -57,6 +54,15 @@ class Client:
         self.send_disconnect()
         self.sock.close()
 
+    def connect(self):
+        """Connects to server & sends `SPAWN` command."""
+        with self.sock_mutex:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((self.HOST, self.PORT))
+
+        # Create a player with the same nick at the server side.
+        self.send_spawn()
+
     def time_left(self) -> timedelta:
         """Returns how much there there's before the end of the round."""
         return self.round_end - datetime.now()
@@ -64,7 +70,7 @@ class Client:
     def send_command(self, command: bytes):
         """Send `command` binary string to the server. See docs/protocol.md"""
         with self.sock_mutex:
-            self.sock.sendall(command)
+            self.sock.sendall(command + Server.DELIMITER.encode("UTF-8"))
 
     def receive(self):
         """Receive and return server response."""
@@ -154,13 +160,14 @@ class Client:
 
         # Init all data.
         self.receive_get()
+        connected = True
 
         map_wh = self.get_map_bounds()
         run = True
         while run:
             pygame.time.delay(20)
 
-            get_thread = Thread(target=self.receive_get, daemon=True)
+            get_thread = PropagatingThread(target=self.receive_get, daemon=True)
             get_thread.start()
 
             for e in pygame.event.get():
@@ -172,58 +179,77 @@ class Client:
 
             surface.fill((0, 0, 0))
             self.draw_leader_board(surface, lb_offset_x, lb_text_height)
-            if self.players[self.nick].is_dead:
-                get_thread.join()
-                self.died(surface)
-            elif self.time_left().total_seconds() > 0:
-                self.winner = None
+            if connected:
+                if self.players[self.nick].is_dead:
+                    get_thread.join()
+                    self.died(surface)
+                elif self.time_left().total_seconds() > 0:
+                    self.winner = None
 
-                keys = pygame.key.get_pressed()
+                    keys = pygame.key.get_pressed()
 
-                direction = Direction.NONE
-                if keys[pygame.K_LEFT]:
-                    direction |= Direction.LEFT
-                if keys[pygame.K_UP]:
-                    direction |= Direction.UP
-                if keys[pygame.K_RIGHT]:
-                    direction |= Direction.RIGHT
-                if keys[pygame.K_DOWN]:
-                    direction |= Direction.DOWN
+                    direction = Direction.NONE
+                    if keys[pygame.K_LEFT]:
+                        direction |= Direction.LEFT
+                    if keys[pygame.K_UP]:
+                        direction |= Direction.UP
+                    if keys[pygame.K_RIGHT]:
+                        direction |= Direction.RIGHT
+                    if keys[pygame.K_DOWN]:
+                        direction |= Direction.DOWN
 
-                if direction != Direction.NONE:
-                    post_thread = Thread(target=self.send_move, args=(direction,), daemon=True)
-                    post_thread.start()
+                    if direction != Direction.NONE:
+                        post_thread = Thread(target=self.send_move, args=(direction,), daemon=True)
+                        post_thread.start()
 
-                get_thread.join()
-                offset_xy = offset(self.players[self.nick].xy, surface.get_size())
+                    try:
+                        get_thread.join()
+                    except (BrokenPipeError, ConnectionResetError):
+                        connected = False
+                        continue
 
-                # Draw map bounds
-                top_left_world = (0, 0)
-                top_left_screen = world2screen(top_left_world, offset_xy)
-                rectangle = pygame.Rect(top_left_screen, map_wh)
-                pygame.draw.rect(surface, self.BACKGROUND, rectangle)
+                    offset_xy = offset(self.players[self.nick].xy, surface.get_size())
 
-                for player in self.players.get_players():
-                    screen_xy = world2screen(player.xy, offset_xy)
-                    if is_circle_on_screen(screen_xy, player.size, surface.get_size()) or player.nick == self.nick:
-                        draw_circle(surface, screen_xy, player.size, player.color)
-                        nick_color = (192, 192, 192) if player.is_dead else (0, 0, 0)
-                        draw_text(surface, self.large_font, player.nick, nick_color, center=screen_xy)
+                    # Draw map bounds
+                    top_left_world = (0, 0)
+                    top_left_screen = world2screen(top_left_world, offset_xy)
+                    rectangle = pygame.Rect(top_left_screen, map_wh)
+                    pygame.draw.rect(surface, self.BACKGROUND, rectangle)
 
-                for food in self.food.get_food():
-                    screen_xy = world2screen(food.xy, offset_xy)
+                    for player in self.players.get_players():
+                        screen_xy = world2screen(player.xy, offset_xy)
+                        if is_circle_on_screen(screen_xy, player.size, surface.get_size()) or player.nick == self.nick:
+                            draw_circle(surface, screen_xy, player.size, player.color)
+                            nick_color = (192, 192, 192) if player.is_dead else (0, 0, 0)
+                            draw_text(surface, self.large_font, player.nick, nick_color, center=screen_xy)
 
-                    if is_circle_on_screen(screen_xy, food.size, surface.get_size()):
-                        draw_circle(surface, screen_xy, food.size, food.color)
+                    for food in self.food.get_food():
+                        screen_xy = world2screen(food.xy, offset_xy)
 
-                draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left().total_seconds())),
-                          topleft=(2, 0))
-                draw_text(surface, self.small_font, "Size: {}".format(self.players[self.nick].size),
-                          bottomleft=(2, surface.get_height()-1))
-                self.draw_leader_board(surface, lb_offset_x, lb_text_height)
+                        if is_circle_on_screen(screen_xy, food.size, surface.get_size()):
+                            draw_circle(surface, screen_xy, food.size, food.color)
+
+                    draw_text(surface, self.small_font, "Time left: {}".format(int(self.time_left().total_seconds())),
+                              topleft=(2, 0))
+                    draw_text(surface, self.small_font, "Size: {}".format(self.players[self.nick].size),
+                              bottomleft=(2, surface.get_height()-1))
+                    self.draw_leader_board(surface, lb_offset_x, lb_text_height)
+                else:
+                    self.timeout(surface, int(-self.time_left().total_seconds()) + 1)
+                    pass
             else:
-                self.timeout(surface, int(-self.time_left().total_seconds()) + 1)
-                pass
+                draw_text(surface, self.large_font, "DISCONNECTED", color=(255, 0, 0),
+                          center=(surface.get_width()//2, surface.get_height()//2))
+                draw_text(surface, self.large_font, "Press R to reconnect ...", color=(255, 0, 0),
+                          midbottom=(surface.get_width() // 2, surface.get_height() - 1))
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_r]:
+                    try:
+                        self.connect()
+                    except ConnectionRefusedError:
+                        continue
+                    else:
+                        connected = True
 
             pygame.display.update()
         pygame.quit()

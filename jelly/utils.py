@@ -3,6 +3,7 @@ from math import sqrt
 from random import randrange, random
 from colorsys import hls_to_rgb
 from pygame import Surface, Color, font, gfxdraw
+from threading import Thread
 
 
 class Direction(IntFlag):
@@ -79,3 +80,23 @@ def world2screen(xy: (int, int), offset_xy: (int, int)):
     :return: coordinates in terms of the screen applying the offset.
     """
     return xy[0] - offset_xy[0], xy[1] - offset_xy[1]
+
+
+# https://stackoverflow.com/a/31614591
+class PropagatingThread(Thread):
+    def run(self):
+        self.exc = None
+        try:
+            if hasattr(self, '_Thread__target'):
+                # Thread uses name mangling prior to Python 3.
+                self.ret = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
+            else:
+                self.ret = self._target(*self._args, **self._kwargs)
+        except BaseException as e:
+            self.exc = e
+
+    def join(self):
+        super(PropagatingThread, self).join()
+        if self.exc:
+            raise self.exc
+        return self.ret

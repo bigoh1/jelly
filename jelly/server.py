@@ -19,6 +19,8 @@ class Server:
     MOVE = 'MOVE'
     DISCONNECT = 'DISCONNECT'
 
+    DELIMITER = ';'
+
     def __init__(self, host, port, food_num, width, height, game_time, restart_time, food_min_size, food_max_size,
                  food_probability, init_player_size):
         self.HOST = host
@@ -129,47 +131,47 @@ class Server:
                 if not raw_data:
                     break
 
-                # Parse JSON. See docs/protocol.md
-                # TODO: write protocol.md
-                data = loads(raw_data.decode("UTF-8"))
+                sequence_raw = raw_data.decode("UTF-8").split(Server.DELIMITER)[:-1]
+                sequence = [loads(item) for item in sequence_raw]
 
-                # Handle requests here.
-                if isinstance(data, str):
-                    # GET
-                    if data == Server.GET:
-                        conn.sendall(self.json_get_data().encode("UTF-8"))
-                    # GET_MAP_BOUNDS
-                    if data == Server.GET_MAP_BOUNDS:
-                        conn.sendall(self.JSON_MAP_BOUNDS)
-                elif isinstance(data, dict):
-                    for command, args in data.items():
-                        # SPAWN
-                        if command == Server.SPAWN:
-                            nick = args
-                            assert_nick(nick)
-                            assert nick not in self.players
-                            self.players.spawn(nick, self.rand_coords(), random_color())
-                        # MOVE
-                        elif command == Server.MOVE:
-                            nick = args[0]
-                            direction = Direction(args[1])
+                for item in sequence:
+                    # Handle requests here.
+                    if isinstance(item, str):
+                        # GET
+                        if item == Server.GET:
+                            conn.sendall(self.json_get_data().encode("UTF-8"))
+                        # GET_MAP_BOUNDS
+                        if item == Server.GET_MAP_BOUNDS:
+                            conn.sendall(self.JSON_MAP_BOUNDS)
+                    elif isinstance(item, dict):
+                        for command, args in item.items():
+                            # SPAWN
+                            if command == Server.SPAWN:
+                                nick = args
+                                assert_nick(nick)
+                                assert nick not in self.players
+                                self.players.spawn(nick, self.rand_coords(), random_color())
+                            # MOVE
+                            elif command == Server.MOVE:
+                                nick = args[0]
+                                direction = Direction(args[1])
 
-                            if nick not in self.players:
-                                raise InvalidData("There's no player with nick '{}'.".format(args[0]))
+                                if nick not in self.players:
+                                    raise InvalidData("There's no player with nick '{}'.".format(args[0]))
 
-                            player = self.players[nick]
+                                player = self.players[nick]
 
-                            if not player.is_dead and self.is_player_on_map_after_move(player, direction):
-                                self.players.move(player, direction)
-                                self.process_moved(player)
+                                if not player.is_dead and self.is_player_on_map_after_move(player, direction):
+                                    self.players.move(player, direction)
+                                    self.process_moved(player)
 
-                        # DISCONNECT
-                        elif command == Server.DISCONNECT:
-                            nick = args
-                            try:
-                                self.players.pop(nick)
-                            except KeyError:
-                                raise InvalidData("There's no player with nick '{}'.".format(args))
+                            # DISCONNECT
+                            elif command == Server.DISCONNECT:
+                                nick = args
+                                try:
+                                    self.players.pop(nick)
+                                except KeyError:
+                                    raise InvalidData("There's no player with nick '{}'.".format(args))
 
     def listen(self):
         """Accepts connections. After a client has connected, talks to it in a separate thread

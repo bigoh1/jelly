@@ -5,7 +5,7 @@ This protocol is used by server and client sides for TCP communication.
 #### Asks server to return width and height of the map.
 ### Client request:
 ```json
-"GET_MAP_BOUNDS"
+"GET_MAP_BOUNDS;"
 ```
 ### Server response:
 ```json
@@ -21,7 +21,7 @@ This protocol is used by server and client sides for TCP communication.
 #### Asks server to return a list of players, food and end of the round time.
 ### Client request: 
 ```json
-"GET"
+"GET;"
 ```
 ### Server response:
 ```json
@@ -52,7 +52,7 @@ This protocol is used by server and client sides for TCP communication.
 ```json
 {
   "SPAWN": "<NICK>"
-}
+};
 ```
 
 
@@ -62,7 +62,7 @@ This protocol is used by server and client sides for TCP communication.
 ```json
 {
   "DISCONNECT": "<NICK>"
-}
+};
 ```
 
 ## `MOVE`
@@ -74,6 +74,6 @@ This protocol is used by server and client sides for TCP communication.
     "<NICK>",
     <DIRECTION>
   ]
-}
+};
 ```
 - `<DIRECTION>` is integer representation of `Direction` enum.
