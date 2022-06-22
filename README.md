@@ -2,6 +2,8 @@ Jelly
 =====
 An agar.io-like game written in python.
 
+![preview](img/screenshot.png)
+
 Why?
 ===
 I've written this little pet-project to learn **Networking (TCP)**.
